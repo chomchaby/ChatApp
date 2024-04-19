@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, Response
 from flask_socketio import SocketIO, join_room, leave_room
 from flask_jwt_extended import JWTManager, create_access_token, unset_access_cookies, jwt_required, get_jwt_identity
-from db import get_user, save_user
+from db import add_room_members, get_room, get_room_members, get_rooms_for_user, get_user, is_room_member, save_room, save_user
 from dotenv import load_dotenv
 from datetime import timedelta
 import os
@@ -25,7 +25,20 @@ jwt = JWTManager(app)
 @jwt_required() 
 def home():
     current_username = get_jwt_identity()
-    return jsonify({'username': current_username}), 200
+    rooms = get_rooms_for_user(current_username)
+    # Convert ObjectId to string for JSON serialization
+    formatted_rooms = []
+    for room in rooms:
+        room_id_str = str(room['_id']['room_id'])  
+        formatted_room = {
+            'room_id': room_id_str,
+            'room_name': room['room_name'],
+            'added_by': room['added_by'],
+            'added_at': room['added_at'].isoformat(),
+            'is_room_admin': room['is_room_admin']
+        }
+        formatted_rooms.append(formatted_room)
+    return jsonify({'username': current_username, 'rooms':formatted_rooms}), 200
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -70,7 +83,61 @@ def signup():
         access_token = create_access_token(identity=username)
         res = jsonify(accessToken=access_token, username = username)
         return res
-        
+
+
+@app.route('/create-room', methods=['GET','POST'])
+@jwt_required()
+def create_room():
+    current_username = get_jwt_identity()
+    if request.method == 'GET':
+        return jsonify({'username': current_username}), 200
+    else:
+        room_name = request.get_json().get('room_name')
+        usernames = [username.strip() for username in request.get_json().get('members').split(',')]
+        print(usernames)
+        print(current_username)
+        if len(room_name) and len(usernames):
+            room_id = save_room(room_name, current_username)
+            if current_username in usernames:
+                usernames.remove(current_username)
+            if len(usernames) > 1 or usernames[0] != '':
+                add_room_members(room_id, room_name, usernames, current_username)
+            return jsonify(room_id=str(room_id))
+        else:
+            return jsonify({'error': 'Invalid credentials'}), 400
+           
+@app.route('/rooms/<room_id>/')
+@jwt_required()
+def view_room(room_id):
+    current_username = get_jwt_identity()
+    room = get_room(room_id)
+    if room and is_room_member(room_id, current_username):
+        room_id_str = str(room['_id'])
+        formatted_room = {
+            '_id' : room_id_str,
+            'name': room['name'],
+            'created_by': room['created_by'],
+            'created_at' : room['created_at'].isoformat()
+        }
+        room_members = get_room_members(room_id)
+        formatted_room_members = []
+        for room_member in room_members:
+            room_id_str = str(room_member['_id']['room_id'])  
+            formatted_room_member = {
+                'room_id': room_id_str,
+                'username': room_member['_id']['username'],
+                'added_by': room_member['added_by'],
+                'added_at': room_member['added_at'].isoformat(),
+                'is_room_admin': room_member['is_room_admin']
+            }
+            formatted_room_members.append(formatted_room_member)
+        return jsonify(username=current_username, room=formatted_room, room_members=formatted_room_members)
+    else :
+        return jsonify({'error': 'some error'}), 500
+    
+##############################################################    
+# socket programming...
+##############################################################
 
 @socketio.on('send_message')
 def handle_send_message_event(data):

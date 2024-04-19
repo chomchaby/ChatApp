@@ -26,13 +26,18 @@ def require_login():
         
 @app.route('/')
 def home():
+    home_url = f"{BACKEND_URL}/"
     access_token = get_access_token()
     headers = {'Authorization': f'Bearer {access_token}'}
+
     try:
-        response = requests.get(f'{BACKEND_URL}/', headers=headers)
+        response = requests.get(home_url, headers=headers)
         if response.status_code == 200:
             username = response.json().get('username')
-            return render_template("index.html", username=username)
+            rooms = response.json().get('rooms')
+            return render_template("index.html", username=username, rooms=rooms)
+        if response.status_code == 401:
+            return redirect(url_for('login'))
     except requests.exceptions.RequestException as e:
         print(f"Error connecting to backend server: {e}")
         return redirect(url_for('login'))
@@ -49,9 +54,6 @@ def chat():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    access_token = get_access_token()
-    if access_token:
-        return redirect(url_for('home'))
     message = ''
     if request.method == 'POST':
         username = request.form.get('username')
@@ -134,6 +136,56 @@ def signup():
 
     return render_template('signup.html', message=message)
 
+@app.route('/create-room', methods=['GET','POST'])
+def create_room():
+    access_token = get_access_token()
+    headers = {'Authorization': f'Bearer {access_token}'}
+    backend_create_room_url = f"{BACKEND_URL}/create-room"
+    message = ''
+    if request.method == 'POST':
+        room_name = request.form.get('room_name')
+        members = request.form.get('members')
+        if room_name:
+            create_room_data = {'room_name': room_name, 'members': members}
+            try:
+                response = requests.post(backend_create_room_url, json=create_room_data, headers=headers)
+                room_id = response.json().get('room_id')
+                if response.status_code == 200:
+                    return redirect(url_for('view_room', room_id=room_id))
+            except requests.exceptions.RequestException as e:
+                print(f"Error connecting to backend server: {e}")
+                print('Create room failed due to server error. Please try again later.')
+        return redirect(url_for('create_room'))
+    else:
+        try:
+            response = requests.get(backend_create_room_url, headers=headers)
+            if response.status_code == 200:
+                username = response.json().get('username')
+                return render_template("create_room.html", username=username, message=message)
+            if response.status_code == 401:
+                return redirect(url_for('login'))
+        except requests.exceptions.RequestException as e:
+            print(f"Error connecting to backend server: {e}")
+            return redirect(url_for('login'))
+
+@app.route('/rooms/<room_id>/')
+def view_room(room_id):
+    view_room_url = f"{BACKEND_URL}/rooms/{room_id}/"
+    access_token = get_access_token()
+    headers = {'Authorization': f'Bearer {access_token}'}
+    try:
+        response = requests.get(view_room_url, headers=headers)
+        if response.status_code == 200:
+            username = response.json().get('username')
+            room = response.json().get('room')
+            room_members = response.json().get('room_members')
+            return render_template('view_room.html', username=username, room=room, room_members=room_members, backend_url=BACKEND_URL)
+            
+        if response.status_code == 401:
+            return redirect(url_for('login'))
+    except requests.exceptions.RequestException as e:
+        print(f"Error connecting to backend server: {e}")
+        return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)

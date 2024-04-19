@@ -7,7 +7,7 @@ Navigate to the server directory:
 cd server
 ```
 
-Install dependencies 
+Install dependencies: 
 ```bash
 pip install -r requirements.txt
 ```
@@ -30,7 +30,7 @@ Navigate to the client directory:
 cd client
 ```
 
-Install dependencies 
+Install dependencies: 
 ```bash
 pip install -r requirements.txt
 ```

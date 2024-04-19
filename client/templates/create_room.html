@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>My Chat App</title>
+  </head>
+  <body>
+    <h1>Create Room</h1>
+    <h3>Owner: {{ username }}</h3>
+    <h3>{{ message }}</h3>
+    <form method="post" action="/create-room">
+      <label>Room Name:</label>
+      <input type="text" name="room_name" required />
+      <br />
+      <label>Members:</label>
+      <input type="text" name="members" />
+      <label> (not include yourself) </label>
+      <br />
+      <button type="submit">Submit</button>
+    </form>
+  </body>
+</html>

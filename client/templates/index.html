@@ -7,6 +7,13 @@
   <body>
     <h1>My Chat App</h1>
     <h3>Hi {{ username}} !</h3>
+    <h3>My rooms</h3>
+    <ul>
+      {% for room in rooms %}
+      <li><a href="/rooms/{{ room.room_id }}">{{ room.room_name }}</a></li>
+      {% endfor %}
+    </ul>
+    <br />
     <form action="/chat">
       <div>
         <label>Enter your username:</label>
@@ -17,6 +24,10 @@
         <input type="text" name="room" />
       </div>
       <button type="submit">Submit</button>
+    </form>
+    <br />
+    <form action="/create-room" method="get">
+      <button type="submit">Create Room</button>
     </form>
     <br />
     <form action="/logout" method="post">
