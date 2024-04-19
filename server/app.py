@@ -94,8 +94,6 @@ def create_room():
     else:
         room_name = request.get_json().get('room_name')
         usernames = [username.strip() for username in request.get_json().get('members').split(',')]
-        print(usernames)
-        print(current_username)
         if len(room_name) and len(usernames):
             room_id = save_room(room_name, current_username)
             if current_username in usernames:
@@ -133,8 +131,9 @@ def view_room(room_id):
             formatted_room_members.append(formatted_room_member)
         return jsonify(username=current_username, room=formatted_room, room_members=formatted_room_members)
     else :
-        return jsonify({'error': 'some error'}), 500
-    
+        return jsonify({'error': 'Invalid credentials'}), 400
+
+
 ##############################################################    
 # socket programming...
 ##############################################################

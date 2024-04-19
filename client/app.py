@@ -168,7 +168,7 @@ def create_room():
             print(f"Error connecting to backend server: {e}")
             return redirect(url_for('login'))
 
-@app.route('/rooms/<room_id>/')
+@app.route('/rooms/<room_id>/', methods=['GET'])
 def view_room(room_id):
     view_room_url = f"{BACKEND_URL}/rooms/{room_id}/"
     access_token = get_access_token()
